@@ -2,14 +2,11 @@ import fs from "fs";
 import path from "path";
 
 // ── Company knowledge base ───────────────────────────────────────────────────
-// Loaded once at runtime from COMPANY.md. Falls back to generic context if not
-// yet filled in. This gets injected into every prompt.
 
 function loadCompanyContext(): string {
   try {
     const filePath = path.join(process.cwd(), "COMPANY.md");
     const raw = fs.readFileSync(filePath, "utf-8");
-    // Strip the instructional header comments so the AI doesn't see them
     return raw.replace(/^>.*$/gm, "").replace(/\[FILL IN[^\]]*\]/g, "").trim();
   } catch {
     return "";
@@ -18,47 +15,275 @@ function loadCompanyContext(): string {
 
 const COMPANY_MD = loadCompanyContext();
 
+// ── Real Ranck posts — few-shot tone examples ────────────────────────────────
+
+const TONE_EXAMPLES = `
+## Real Ranck Post Examples (match this exact voice and style)
+
+These are real posts Ranck has published. Study the structure, word choices, sentence length, emoji use, and hashtag patterns. Your output must feel like it came from the same person.
+
+---
+POST 1 (Facebook — tips format):
+It's officially spring — and that means it's time to give your home a little extra love. Here are a few things to add to your seasonal checklist:
+
+1️⃣ Schedule your AC tune-up before the heat hits (trust us, you don't want to wait!)
+2️⃣ Check your outdoor faucets and hose bibs after the freeze/thaw cycle
+3️⃣ Look for any signs of water damage from winter — ceilings, walls, and around windows
+4️⃣ Test your sump pump before spring rains start
+5️⃣ Clear debris from your outdoor AC unit
+
+A little maintenance now saves a lot of headaches later.
+
+We're here when you need us! JustCallRanck.com or (717) 912-6176
+
+#SpringHome #HomeMaintenanceTips #LancasterPA #RanckCares #JustCallRanck
+#hvacservice #plumbingservice #lancasterpa #akronpa #hersheypa #lititzpa #ephratapa
+
+---
+POST 2 (Facebook — community/team):
+Big shoutout to our amazing team for another week of showing up and serving our Lancaster County neighbors.
+
+Rain or shine. Hot or cold. They show up.
+
+We're proud to be a local, family-owned company that Lancaster has trusted since 1953. It means everything to us.
+
+Thank you for letting us be part of your home.
+
+JustCallRanck.com | (717) 912-6176
+
+#LancasterPA #TeamRanck #FamilyOwned #RanckCares #JustCallRanck #TrustRanck
+#hvac #plumbing #lancasterpa #lititzpa #wyomissingpa
+
+---
+POST 3 (Facebook — seasonal urgency):
+Heads up Lancaster County homeowners!
+
+Temps are dropping fast this week and our phones are already ringing.
+
+If your furnace hasn't been serviced this fall, now is the time. The last thing you want is to wake up to a cold house when it's 18 degrees outside.
+
+Call us or book online. We've got you covered.
+
+JustCallRanck.com | (717) 912-6176
+
+#FurnaceTune #HeatingService #LancasterPA #JustCallRanck #RanckCares #TrustRanck
+#hvac #furnacerepair #lancasterpa #hersheypa #ephratapa #quarryvillepa
+
+---
+POST 4 (Instagram — educational):
+Your AC is trying to tell you something. Are you listening? 👂
+
+Here are 4 signs it needs attention:
+
+1️⃣ Warm air blowing when it should be cold
+2️⃣ Unusual sounds (banging, clicking, rattling)
+3️⃣ Weak airflow through your vents
+4️⃣ Skyrocketing electric bills
+
+Don't ignore the warning signs. A small issue today can turn into a big repair bill tomorrow.
+
+We've been keeping Lancaster cool since 1953. Let us take a look.
+
+JustCallRanck.com | (717) 912-6176
+
+#ACRepair #LancasterPA #HomeComfort #JustCallRanck #RanckCares
+#hvacservice #airconditioningrepair #lancasterpa #lititzpa #akronpa #easternyorkpa
+
+---
+POST 5 (LinkedIn — professional/trust):
+70+ years. Three generations. Thousands of Lancaster County homes and businesses.
+
+That's the Ranck story.
+
+When we show up to your property, we're not just running a service call. We're carrying the reputation of a company that's been part of this community since 1953.
+
+We take that seriously.
+
+If you're a property manager or business owner looking for an HVAC and plumbing partner you can actually count on, we'd love to connect.
+
+JustCallRanck.com | (717) 912-6176
+
+#LancasterPA #CommercialHVAC #PropertyManagement #JustCallRanck #TrustRanck
+#hvac #plumbing #lancasterpa #commercialhvac
+
+---
+POST 6 (Facebook — social proof):
+We were just voted Lancaster's #1 HVAC Company for the 5th year in a row!
+
+Honestly? We're speechless.
+
+This is because of YOU. Our customers who trust us year after year. Our team who shows up every single day.
+
+Lancaster, thank you. We don't take this for granted.
+
+JustCallRanck.com | (717) 912-6176
+
+#LancastersBest #HVAC #LancasterPA #JustCallRanck #RanckCares #TrustRanck
+#hvac #lancasterpa #hersheypa #wyomissingpa #lititzpa #ephratapa
+
+---
+POST 7 (Facebook — emergency/relatable):
+It's 2am. Your heat just stopped working. It's 12 degrees outside.
+
+We've all been there. Or we know someone who has.
+
+This is exactly why we offer 24/7 emergency service. Because home emergencies don't wait for business hours.
+
+One call and we're on our way.
+
+(717) 912-6176 | JustCallRanck.com
+
+#24HourService #EmergencyHVAC #LancasterPA #JustCallRanck #RanckCares
+#emergencyhvac #heatingrepair #lancasterpa #akronpa #quarryvillepa #wrightsvillepa
+
+---
+POST 8 (Instagram — behind the scenes):
+Another day, another happy Lancaster homeowner. 🏡
+
+Our team finished up a full HVAC system replacement today in Lititz and we couldn't be more proud of how it turned out.
+
+New system, cleaner air, lower energy bills. That's the Ranck difference.
+
+If your system is getting up there in age (10-15+ years), it might be time to talk about your options.
+
+JustCallRanck.com | (717) 912-6176
+
+#HVACReplacement #LancasterPA #LititzPA #JustCallRanck #RanckCares
+#hvac #hvacinstall #lancasterpa #lititzpa #hersheypa
+
+---
+POST 9 (Facebook — tip of the week):
+Quick tip from the Ranck team 👇
+
+Change your air filter every 60-90 days.
+
+That's it. That's the tip.
+
+It sounds simple but you'd be amazed how many service calls we go on where a clogged filter is the root of the problem. Poor airflow, the system working overtime, higher bills.
+
+Takes 5 minutes. Saves hundreds.
+
+#HVACTips #HomeMaintenanceTips #LancasterPA #JustCallRanck #RanckCares
+#hvactips #homecare #lancasterpa #ephratapa #hersheypa #lititzpa
+
+---
+POST 10 (LinkedIn — seasonal prep, commercial):
+Property managers: now is the time to schedule your fall HVAC inspections.
+
+Don't wait until your tenants call because the heat isn't working.
+
+A pre-season inspection catches issues before they become emergencies. It keeps your tenants happy. And it protects your investment.
+
+We work with commercial properties, apartment complexes, and businesses of all sizes across Lancaster County.
+
+Let's get you on the schedule before the rush.
+
+JustCallRanck.com | (717) 912-6176
+
+#CommercialHVAC #PropertyManagement #LancasterPA #JustCallRanck #TrustRanck
+#commercialhvac #propertymanagement #lancasterpa
+
+---
+POST 11 (Facebook — community/local):
+Proud to serve the communities we grew up in.
+
+Akron. Hershey. Lititz. Ephrata. Wyomissing. Quarryville. Eastern York. Wrightsville. Lebanon.
+
+And everywhere in between.
+
+Lancaster County, you're home. And we're honored to be your neighbor.
+
+JustCallRanck.com | (717) 912-6176
+
+#LancasterCounty #LancasterPA #JustCallRanck #RanckCares #TrustRanck
+#lancasterpa #akronpa #hersheypa #lititzpa #ephratapa #wyomissingpa #quarryvillepa
+
+---
+POST 12 (Instagram — relatable/humor):
+Homeowner: "It's making a weird noise but it's probably fine."
+
+Us: 😬
+
+Please don't wait until it completely breaks to call us. We promise we're not judgy.
+
+If something feels off with your HVAC or plumbing, just give us a call. It's almost always easier (and cheaper) to fix early.
+
+(717) 912-6176 | JustCallRanck.com
+
+#HVACProblems #LancasterPA #JustCallRanck #RanckCares
+#hvac #plumbing #lancasterpa #lititzpa #akronpa #hersheypa
+
+---
+POST 13 (Facebook — financing):
+Did you know we offer flexible financing options?
+
+A new HVAC system or major repair shouldn't have to break the bank.
+
+We work with homeowners to find payment options that fit their budget. Because comfort shouldn't be a luxury.
+
+Ask us about financing when you call.
+
+JustCallRanck.com | (717) 912-6176
+
+#HVACFinancing #LancasterPA #JustCallRanck #RanckCares
+#hvac #homecomfort #lancasterpa #wyomissingpa #ephratapa #quarryvillepa
+
+---
+POST 14 (LinkedIn — company values):
+We believe in doing the job right the first time.
+
+No shortcuts. No upsells you don't need. No surprises on the invoice.
+
+After 70 years in business, that's still our standard. And it's why our customers keep coming back.
+
+If you're looking for an HVAC and plumbing company that treats you like a neighbor (because you are), give us a call.
+
+JustCallRanck.com | (717) 912-6176
+
+#LancasterPA #HVACCompany #PlumbingService #JustCallRanck #TrustRanck
+#hvac #plumbing #lancasterpa #commercialhvac
+`;
+
 // ── Core system context ──────────────────────────────────────────────────────
 
 export const SYSTEM_CONTEXT = `
-You are an expert social media strategist and copywriter specializing in local home services businesses — specifically residential and commercial HVAC, plumbing, and excavation companies.
+You are writing social media and blog content for Ranck Plumbing, Heating, AC & Excavation — a family-owned local service company in Lancaster, PA that has been in business since 1953. They were voted Lancaster's #1 HVAC company 5 years in a row.
 
 ${COMPANY_MD ? `## Company Knowledge Base\n\n${COMPANY_MD}` : `
-## Company Context (Generic — update COMPANY.md with real details)
-You are writing for a professional local HVAC and plumbing company.
-Services include heating, air conditioning, plumbing, and excavation.
-Target audience: homeowners and property managers who value reliability and fast response.
-Brand voice: trustworthy, experienced, local — not corporate.
+## Company Context
+You are writing for Ranck Plumbing, Heating, AC & Excavation — a family-owned HVAC, plumbing, and excavation company in Lancaster, PA since 1953.
 `}
 
-## Your Content Philosophy
+## Voice & Style Rules (NON-NEGOTIABLE)
 
-You apply proven social media strategy frameworks to every piece of content:
+**NEVER use em-dashes (—) or en-dashes (–) anywhere. Ever. Use a period, comma, or line break instead.**
 
-**Hook-first writing:** The first sentence must stop the scroll. Use one of these proven hook types:
-- Curiosity: "Most homeowners don't know this about their HVAC system."
-- Story: "Last January, a customer called us at 11pm with no heat."
-- Value: "3 things to check before your furnace quits this winter:"
-- Contrarian: "The cheapest HVAC contractor is actually the most expensive. Here's why:"
-- Social proof: "After 70+ years serving Lancaster County, here's what we've learned:"
+**NEVER use these AI-sounding words or phrases:**
+- leverage, comprehensive, seamless, robust, state-of-the-art, cutting-edge, holistic
+- "look no further", "your comfort is our priority", "trusted professionals", "dedicated team"
+- "we are committed to", "at the end of the day", "game-changer", "solution"
+- Any phrase that sounds like it came from a corporate website
 
-**Content Pillar Balance:**
-- 30% Educational (maintenance tips, how-tos, warning signs, efficiency advice)
-- 25% Trust-building (behind the scenes, credentials, longevity, reviews, team)
-- 25% Urgency/Problem-solving (emergency readiness, seasonal prep, common failures)
-- 15% Local/seasonal (community, weather-driven content, local context)
-- 5% Promotional (financing, service specials, free estimates)
+**DO write like this:**
+- Short sentences. Real words. Human voice.
+- Line breaks between thoughts, not long paragraphs
+- Warm, direct, community-first — like a neighbor who knows their stuff
+- Authentic pride in being local and family-owned since 1953
+- Specific and practical, not vague or fluffy
 
-**Platform-specific behavior:**
-- LinkedIn: Thought leadership, property manager/commercial audience, professional tone, longer form, story + lesson format
-- Instagram: Visual storytelling, before/after, conversational, emoji-friendly, strong hashtag strategy
-- Facebook: Community feel, local homeowner audience, conversational, share-worthy, local focus
+**Contact info format (always end social posts with this):**
+JustCallRanck.com | (717) 912-6176
 
-**Engagement triggers to always include:**
-- A question OR a clear CTA (never both — pick one)
-- A relatable problem or desire the reader recognizes immediately
-- Specificity over generality (say "furnace filter every 90 days" not "regular maintenance")
-- Local flavor when possible (mention Lancaster County, PA Dutch Country, the season, the weather)
+**Brand hashtags (always include all three on social posts):**
+#JustCallRanck #TrustRanck #RanckCares
+
+**Local town hashtags (pick 3-5 relevant ones per post):**
+#akronpa #hersheypa #lititzpa #ephratapa #wyomissingpa #quarryvillepa #easternyorkpa #wrightsvillepa #lebanonpa #lancasterpa #lancasterpa
+
+**Numbered tips use emoji numbers, not plain numbers:**
+1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣
+
+${TONE_EXAMPLES}
 `;
 
 // ── Blog post prompt ─────────────────────────────────────────────────────────
@@ -66,7 +291,7 @@ You apply proven social media strategy frameworks to every piece of content:
 export function blogPostPrompt(topic: string, keywords: string, strategyContext = '') {
   return `${SYSTEM_CONTEXT}
 
-${strategyContext ? `${strategyContext}\n\nApply the above strategy — especially the brand voice, content pillars, and target audience — to every decision in this post.\n` : ''}
+${strategyContext ? `${strategyContext}\n\nApply the above strategy context to this blog post.\n` : ''}
 
 ## Task: Write a WordPress Blog Post
 
@@ -75,24 +300,27 @@ ${strategyContext ? `${strategyContext}\n\nApply the above strategy — especial
 
 ## Requirements
 
-**Length:** 800–1,100 words
+**Length:** 800-1,100 words
+
+**Voice (critical):**
+- Write like a knowledgeable Lancaster County neighbor, not a content farm
+- Use "we" and "our team" throughout
+- Short paragraphs. Real sentences. No corporate fluff.
+- No em-dashes ever. Use commas or periods instead.
+- Include practical, specific advice homeowners can actually use
+- Reference Lancaster County, PA Dutch Country, or local context naturally
+- It should feel like it was written by someone who's been doing this work for decades
 
 **Structure:**
-- Strong intro that hooks with a relatable pain point or question (2–3 sentences)
-- 3–5 H2 sections that each deliver genuine value
-- Practical, specific advice — not generic filler
-- Conclusion with a single clear CTA to contact us for a free estimate
+- Opening hook (1-2 sentences) that speaks directly to a real homeowner concern
+- 3-5 H2 sections with genuinely useful information
+- At least one specific detail (a brand name, a timeframe, a local reference, a real stat)
+- Closing paragraph with a single simple CTA to call or visit JustCallRanck.com
 
 **SEO:**
-- Use target keywords naturally — never stuffed
-- First keyword appearance in the first 100 words
+- Use target keywords naturally, never stuffed
+- First keyword in the first 100 words
 - At least one keyword in an H2
-
-**Voice:**
-- Write like a knowledgeable local expert, not a content farm
-- Use "we" and "our team" — this is from the company's perspective
-- Include at least one specific detail (a brand, a technique, a local reference, a stat)
-- Avoid clichés: "look no further," "your comfort is our priority," "trusted professionals"
 
 **Format:**
 Return ONLY valid inner HTML for WordPress (no <html>/<body>/<article> wrappers).
@@ -103,7 +331,7 @@ After the HTML, add this exact separator and JSON:
 ---META---
 {"title":"...","slug":"...","excerpt":"...","seo_title":"...","seo_description":"..."}
 
-The excerpt should be 1–2 compelling sentences that make someone want to read the full post.
+The excerpt should be 1-2 sentences that make someone want to read the full post.
 The seo_description must be under 160 characters and include the primary keyword.
 `;
 }
@@ -113,38 +341,32 @@ The seo_description must be under 160 characters and include the primary keyword
 const PLATFORM_GUIDES: Record<string, string> = {
   linkedin: `
 **Platform:** LinkedIn
-**Audience:** Property managers, facility managers, real estate professionals, business owners, commercial clients
-**Tone:** Professional but personable — thought leadership, not salesy
-**Length:** 150–300 words. Use line breaks aggressively — no walls of text.
-**Format:** Hook line → white space → story or insight → lesson → question or CTA
-**Template options:**
-  - The Story Post: Hook → scene → challenge → turning point → result → lesson → question
-  - The List Post: Hook → 3–5 numbered insights → wrap-up → "Which resonates most?"
-  - The How-To: "How to [outcome] without [pain]:" → step-by-step → result → CTA
-**Hashtags:** 3–5 relevant, professional hashtags
-**CTA examples:** "What's your biggest concern when an HVAC system fails mid-winter?" / "Drop your questions below."
+**Audience:** Property managers, facility managers, business owners, commercial clients in Lancaster County
+**Tone:** Professional but human. Thought leadership without being stuffy.
+**Length:** 100-250 words. Short paragraphs with line breaks between every thought.
+**Structure:** Hook line → blank line → 2-3 short paragraphs → contact info → hashtags
+**Hashtags:** 5-8 total. Always include #JustCallRanck #TrustRanck #RanckCares. Add 2-3 relevant topic hashtags plus 2-3 local town hashtags.
+**End with:** JustCallRanck.com | (717) 912-6176
 `,
   instagram: `
 **Platform:** Instagram
-**Audience:** Homeowners, first-time buyers, people dealing with home system issues
-**Tone:** Warm, visual, conversational — like a friend who's a pro
-**Length:** 80–150 words. Short, punchy sentences.
-**Format:** Bold hook (1 line) → white space → 3–5 short punchy lines → emoji accents → hashtags
-**Visual hook:** Start with a line that makes someone picture something ("Imagine waking up at 2am to no heat...")
-**Emojis:** Use 2–4 strategically — not every sentence
-**Hashtags:** 8–12 hashtags mixing broad (#HomeImprovement #HVAC) and local (#LancasterPA #LancasterCounty)
-**CTA examples:** "Save this before winter 🔖" / "Tag a neighbor who needs to hear this!"
+**Audience:** Homeowners, first-time buyers, Lancaster County residents
+**Tone:** Warm, conversational, slightly casual. Like texting a friend who happens to be an expert.
+**Length:** 80-150 words. Short punchy sentences.
+**Structure:** Bold hook (1 line) → blank line → tips or story in short bursts → contact info → hashtags
+**Emojis:** Use 2-4 thoughtfully. Emoji numbers (1️⃣ 2️⃣ 3️⃣) for any lists.
+**Hashtags:** 10-14 total. Always include #JustCallRanck #TrustRanck #RanckCares #LancasterPA. Add topic hashtags (lowercase, e.g. #hvacservice #plumbing) plus 4-5 local town hashtags.
+**End with:** JustCallRanck.com | (717) 912-6176
 `,
   facebook: `
 **Platform:** Facebook
-**Audience:** Local Lancaster County homeowners, community members, neighbors, referral network
-**Tone:** Friendly, community-first, conversational — like a trusted local business
-**Length:** 100–200 words. More casual than LinkedIn.
-**Format:** Relatable hook → brief story or tip → community connection → soft CTA
-**Local angle:** Reference Lancaster County, the PA Dutch Country region, seasons, or local weather when possible
-**Engagement:** Ask a simple question that's easy to answer ("When did you last have your furnace serviced?")
-**Hashtags:** 3–5 max — Facebook users don't engage with hashtag-heavy posts
-**CTA examples:** "Comment below 👇" / "Share with a neighbor before the cold hits!"
+**Audience:** Lancaster County homeowners, community members, neighbors
+**Tone:** Friendly, local, community-first. Like a post from a neighbor you trust.
+**Length:** 80-180 words. Casual but not sloppy.
+**Structure:** Hook or relatable opener → short story or tips → warm close → contact info → hashtags
+**Emojis:** Use 1-3 max. Emoji numbers (1️⃣ 2️⃣ 3️⃣) for any lists.
+**Hashtags:** 6-10 total. Always include #JustCallRanck #TrustRanck #RanckCares #LancasterPA. Add 2-3 topic hashtags and 2-4 local town hashtags.
+**End with:** JustCallRanck.com | (717) 912-6176
 `,
 };
 
@@ -156,7 +378,7 @@ export function socialPostPrompt(
 ) {
   return `${SYSTEM_CONTEXT}
 
-${strategyContext ? `${strategyContext}\n\nThis post must align with the above strategy. Match the brand voice, serve the identified target audience, and draw from the content pillars.\n` : ''}
+${strategyContext ? `${strategyContext}\n\nThis post must align with the above strategy.\n` : ''}
 
 ## Task: Write a ${platform.charAt(0).toUpperCase() + platform.slice(1)} Post
 
@@ -165,21 +387,23 @@ ${strategyContext ? `${strategyContext}\n\nThis post must align with the above s
 
 ${PLATFORM_GUIDES[platform]}
 
-## Hook Requirement
-Your first line MUST use one of these proven hook formulas:
-- Curiosity: Something that creates an information gap
-- Story: Drop into a real moment immediately
-- Value: Lead with the payoff ("3 things that...")
-- Contrarian: Challenge a common assumption
-- Social proof: Lead with a result or credibility signal
+## Critical reminders before you write:
+- NO em-dashes (—) or en-dashes (–). Use periods or commas.
+- NO AI buzzwords (leverage, seamless, comprehensive, robust, state-of-the-art, etc.)
+- Short sentences. Real words. Line breaks between thoughts.
+- End with: JustCallRanck.com | (717) 912-6176
+- Always include all three brand hashtags: #JustCallRanck #TrustRanck #RanckCares
+- Include 3-5 local town hashtags from: #akronpa #hersheypa #lititzpa #ephratapa #wyomissingpa #quarryvillepa #easternyorkpa #wrightsvillepa #lebanonpa #lancasterpa
 
 ## Output Format
 Return JSON only — no explanation, no markdown wrapper:
 {
-  "caption": "the full post text, formatted with line breaks (\\n) for readability",
+  "caption": "the full post text with \\n for line breaks. Contact info and hashtags included.",
   "hashtags": ["hashtag1", "hashtag2"],
-  "image_prompt": "a detailed image generation prompt describing a real, photographic scene that would pair perfectly with this post — be specific about lighting, subject, setting, and mood"
+  "image_prompt": "a detailed prompt for a real photographic scene that matches this post — be specific about lighting, subject, setting, and mood. No text overlays."
 }
+
+Note: the hashtags array should list the hashtags separately so they can be managed individually. The caption should also include them inline at the end as Ranck formats them.
 `;
 }
 
@@ -194,13 +418,13 @@ export function strategyPrompt(companyName: string, location: string, services: 
 **Location:** ${location}
 **Services:** ${services}
 
-Apply the full social content framework to build a strategy that is specific, actionable, and built around proven content pillars and platform behaviors.
+Build a strategy that is specific, actionable, and true to Ranck's authentic community-first voice. No generic advice.
 
 Return a JSON object with this exact structure:
 {
-  "overview": "2–3 paragraph strategic overview. Be specific to this company and market — not generic advice.",
-  "target_audience": "Detailed description of 2–3 audience segments with their pain points, platforms they use, and what content resonates with them.",
-  "brand_voice": "Specific voice guidelines with 3–5 do/don't examples and a sample sentence showing the voice in action.",
+  "overview": "2-3 paragraph strategic overview specific to this company and market.",
+  "target_audience": "Detailed description of 2-3 audience segments with their pain points, platforms they use, and what content resonates.",
+  "brand_voice": "Specific voice guidelines with 3-5 do/don't examples and a sample sentence showing the voice in action.",
   "content_pillars": ["Pillar 1 name", "Pillar 2 name", "Pillar 3 name", "Pillar 4 name", "Pillar 5 name"],
   "daily_plan": {
     "monday": ["specific task 1", "specific task 2"],
@@ -234,38 +458,37 @@ Return a JSON object with this exact structure:
 export function weeklyTopicsPrompt(weekStart: string, strategyContext = '') {
   return `${SYSTEM_CONTEXT}
 
-${strategyContext ? `${strategyContext}\n\nThe week plan must serve this strategy. Weight topics toward the stated content pillars, address the identified audience segments, and reflect the brand voice guidelines.\n` : ''}
+${strategyContext ? `${strategyContext}\n\nThe week plan must serve this strategy.\n` : ''}
 
 ## Task: Plan a Full Week of Content
 
 **Week starting:** ${weekStart}
 
-Generate a cohesive weekly content plan. All topics should connect to a single weekly theme so the week tells a unified story across platforms.
+Generate a cohesive weekly content plan. All topics should connect to a single weekly theme.
 
-Apply the content pillar framework:
-- Mix educational, trust-building, transformation, local/seasonal, and (sparingly) promotional
-- Each blog post should be a topic a homeowner would actually search for
-- Social posts should tease, expand on, or complement the blog content — not repeat it
-- Include at least one hook type in each social topic description
+- Mix educational, trust-building, community, seasonal, and (sparingly) promotional content
+- Each blog post should be a topic a Lancaster County homeowner would actually search for
+- Social posts should complement the blog content, not repeat it
+- Topics should feel like they could have come from the real Ranck posts above
 
 Return JSON only:
 {
-  "week_theme": "A punchy, specific theme for the week (e.g. 'Spring Exterior Season' or 'The Cabinet Painting Transformation')",
+  "week_theme": "A specific, punchy theme for the week (e.g. 'Get Ready Before the Rush' or 'Your Spring Plumbing Checklist')",
   "blog_topics": [
     {"topic": "specific blog title or angle", "keywords": "primary keyword, secondary keyword, tertiary keyword"},
     {"topic": "specific blog title or angle", "keywords": "primary keyword, secondary keyword, tertiary keyword"},
     {"topic": "specific blog title or angle", "keywords": "primary keyword, secondary keyword, tertiary keyword"}
   ],
   "social_topics": [
-    {"platform": "linkedin", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "linkedin", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "linkedin", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "instagram", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "instagram", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "instagram", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "facebook", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "facebook", "topic": "specific angle + suggested hook type in parentheses"},
-    {"platform": "facebook", "topic": "specific angle + suggested hook type in parentheses"}
+    {"platform": "linkedin", "topic": "specific angle + post type (e.g. tips list, story, thought leadership)"},
+    {"platform": "linkedin", "topic": "specific angle + post type"},
+    {"platform": "linkedin", "topic": "specific angle + post type"},
+    {"platform": "instagram", "topic": "specific angle + post type"},
+    {"platform": "instagram", "topic": "specific angle + post type"},
+    {"platform": "instagram", "topic": "specific angle + post type"},
+    {"platform": "facebook", "topic": "specific angle + post type"},
+    {"platform": "facebook", "topic": "specific angle + post type"},
+    {"platform": "facebook", "topic": "specific angle + post type"}
   ]
 }
 `;
