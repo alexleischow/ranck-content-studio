@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase/server";
+import { SYSTEM_CONTEXT } from "@/lib/ai/prompts";
 
 const client = new Anthropic();
 
@@ -18,7 +19,9 @@ export async function POST(req: NextRequest) {
         max_tokens: 4000,
         messages: [{
           role: "user",
-          content: `You are editing a blog post for Ranck Plumbing, Heating, AC & Excavation (Lancaster, PA).
+          content: `${SYSTEM_CONTEXT}
+
+You are editing a blog post for Ranck Plumbing, Heating, AC & Excavation (Lancaster, PA). Apply Ranck's authentic voice to any rewrites — casual, direct, no em-dashes, no AI buzzwords.
 
 Current title: ${title}
 Current excerpt: ${excerpt}
@@ -55,7 +58,9 @@ Return ONLY valid JSON, no other text.`,
         max_tokens: 1000,
         messages: [{
           role: "user",
-          content: `You are editing a ${platform} social media post for Ranck Plumbing, Heating, AC & Excavation (Lancaster, PA).
+          content: `${SYSTEM_CONTEXT}
+
+You are editing a ${platform} social media post for Ranck Plumbing, Heating, AC & Excavation (Lancaster, PA). Apply Ranck's authentic voice to any rewrites — casual, direct, no em-dashes, no AI buzzwords, contractions always.
 
 Current caption:
 ${caption}
