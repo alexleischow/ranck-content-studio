@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createServiceClient } from "@/lib/supabase/server";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(req: NextRequest) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   try {
     const { imagePrompt, platform, postId } = await req.json();
     if (!imagePrompt) return NextResponse.json({ error: "imagePrompt is required" }, { status: 400 });
