@@ -1,8 +1,27 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+
+/* ── Cal.com-inspired design tokens (light) ── */
+:root {
+  --canvas:       #ffffff;
+  --surface:      #fafafa;
+  --surface-2:    #f3f3f3;
+  --accent:       #242424;
+  --accent-hover: #111111;
+  --mint:         #242424;
+  --mint-border:  #111111;
+  --white:        #ffffff;
+  --text-primary: #111111;
+  --text-muted:   #898989;
+  --text-soft:    #555555;
+  --border-dim:   rgba(0,0,0,0.06);
+  --shadow-card:  rgba(19,19,22,0.07) 0px 1px 5px -4px, rgba(34,42,53,0.08) 0px 0px 0px 1px, rgba(34,42,53,0.05) 0px 4px 8px 0px;
+  --shadow-sm:    rgba(34,42,53,0.08) 0px 0px 0px 1px, rgba(34,42,53,0.04) 0px 2px 4px 0px;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -49,7 +68,7 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -122,9 +141,44 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans), Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans), Inter, sans-serif;
   }
 }
+
+/* ── Utility classes ── */
+.font-display  { font-family: var(--font-display), sans-serif; font-weight: 600; }
+.font-mono-vg  { font-family: var(--font-sans), monospace; }
+.label-mono    { font-family: var(--font-sans), sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+.label-kicker  { font-family: var(--font-sans), sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+
+/* ── Cal card (shadow-border, no CSS border) ── */
+.vg-card {
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+}
+.vg-card-mint { box-shadow: var(--shadow-card), 0 0 0 1px rgba(255,255,255,0.2); }
+
+/* Buttons: styled via Tailwind arbitrary values in each component (src/lib/btn.ts) */
+
+/* ── Tab trigger active state (base-ui uses data-active, not data-[state=active]) ── */
+[data-slot="tabs-trigger"][data-active] {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  box-shadow: rgba(34,42,53,0.08) 0px 0px 0px 1px, rgba(34,42,53,0.04) 0px 1px 3px 0px;
+}
+
+/* ── Blog prose styles ── */
+.blog-prose { color: var(--text-primary); }
+.blog-prose h2 { font-size: 1.2rem; font-weight: 700; color: #111; margin-top: 1.5rem; margin-bottom: 0.5rem; line-height: 1.3; }
+.blog-prose h3 { font-size: 1rem; font-weight: 600; color: #242424; margin-top: 1.25rem; margin-bottom: 0.4rem; }
+.blog-prose p  { font-size: 0.9rem; line-height: 1.8; color: #444; margin-bottom: 0.875rem; }
+.blog-prose ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.875rem; }
+.blog-prose li { font-size: 0.9rem; line-height: 1.7; color: #444; margin-bottom: 0.25rem; }
+.blog-prose strong { color: #111; font-weight: 600; }
