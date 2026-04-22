@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function BulkRefineButton({ postCount }: { postCount: number }) {
   const [running, setRunning] = useState(false);
+  const router = useRouter();
 
   async function run() {
-    if (!confirm(`This will rewrite all ${postCount} non-published posts to match Ranck's authentic voice. Continue?`)) return;
+    if (!confirm(`This will rewrite all ${postCount} non-published posts in Ranck's authentic voice. This may take a few minutes. Continue?`)) return;
     setRunning(true);
     try {
       const res = await fetch("/api/bulk-refine", {
@@ -16,14 +18,26 @@ export default function BulkRefineButton({ postCount }: { postCount: number }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "all" }),
       });
-      const data = await res.json();
-      if (data.errors > 0) {
-        toast.warning(`Done — ${data.updated} posts updated, ${data.errors} errors.`);
-      } else {
-        toast.success(`All ${data.updated} posts rewritten in Ranck's voice.`);
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text}`);
       }
-    } catch {
-      toast.error("Something went wrong. Check the console.");
+
+      const data = await res.json();
+
+      if (data.errors > 0) {
+        toast.warning(`Done — ${data.updated} posts updated, ${data.errors} failed. Check console for details.`);
+        console.error("Bulk refine errors:", data.errorDetails);
+      } else {
+        toast.success(`${data.updated} posts rewritten. Reloading…`);
+      }
+
+      // Reload so the updated content is visible right away
+      setTimeout(() => router.refresh(), 800);
+    } catch (e: any) {
+      console.error("Bulk refine failed:", e);
+      toast.error(`Failed: ${e.message}`);
     } finally {
       setRunning(false);
     }
@@ -37,7 +51,7 @@ export default function BulkRefineButton({ postCount }: { postCount: number }) {
       style={{ backgroundColor: "#fef3c7", color: "#92400e" }}
     >
       <Wand2 className="w-4 h-4" />
-      {running ? "Rewriting posts…" : `Refresh Voice (${postCount} posts)`}
+      {running ? "Rewriting posts… (this takes a few minutes)" : `Refresh Voice (${postCount} posts)`}
     </button>
   );
 }

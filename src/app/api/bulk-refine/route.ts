@@ -3,9 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase/server";
 import { SYSTEM_CONTEXT } from "@/lib/ai/prompts";
 
-const client = new Anthropic();
+export const maxDuration = 300;
 
-async function refineSocialPost(post: any): Promise<{ caption: string; hashtags: string[] }> {
+async function refineSocialPost(client: Anthropic, post: any): Promise<{ caption: string; hashtags: string[] }> {
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1200,
@@ -20,15 +20,7 @@ ${post.caption}
 
 Current hashtags: ${(post.hashtags ?? []).join(", ")}
 
-Rewrite this post so it:
-- Sounds like the real Ranck posts shown above (casual, warm, community-first, local)
-- Has NO em-dashes anywhere
-- Has NO AI buzzwords (leverage, comprehensive, seamless, robust, state-of-the-art, etc.)
-- Uses short sentences with line breaks between thoughts
-- Ends with: JustCallRanck.com | (717) 912-6176
-- Includes all three brand hashtags: #JustCallRanck #TrustRanck #RanckCares
-- Includes 3-5 local town hashtags from: #akronpa #hersheypa #lititzpa #ephratapa #wyomissingpa #quarryvillepa #easternyorkpa #wrightsvillepa #lebanonpa #lancasterpa
-- Keeps the same core topic and message — just rewritten in Ranck's real voice
+Rewrite this post so it sounds like that 50-year-old woman from Lititz — warm, plain, neighborly, not like marketing copy. Keep the same core topic. End with JustCallRanck.com | (717) 912-6176 and include #JustCallRanck #TrustRanck #RanckCares plus 3-5 local town hashtags.
 
 Return JSON only:
 {"caption":"...","hashtags":["tag1","tag2"]}`,
@@ -41,7 +33,7 @@ Return JSON only:
   return JSON.parse(match[0]);
 }
 
-async function refineBlogPost(post: any): Promise<{ title: string; content_html: string; excerpt: string }> {
+async function refineBlogPost(client: Anthropic, post: any): Promise<{ title: string; content_html: string; excerpt: string }> {
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 4000,
@@ -56,14 +48,7 @@ Current excerpt: ${post.excerpt}
 Current HTML content:
 ${post.content_html}
 
-Rewrite this blog post so it:
-- Sounds like it was written by a knowledgeable Lancaster County neighbor, not a content farm
-- Has NO em-dashes anywhere (use commas or periods instead)
-- Has NO AI buzzwords (leverage, comprehensive, seamless, robust, state-of-the-art, etc.)
-- Uses short paragraphs and plain, direct language
-- Keeps "we" and "our team" voice throughout
-- Preserves the same topic, SEO intent, and structure (same H2 sections are fine)
-- Maintains the same approximate length
+Rewrite this so it sounds like a real person who's been doing HVAC and plumbing in Lancaster County for decades — plain language, short paragraphs, no corporate fluff, no em-dashes. Keep the same topic and structure.
 
 Return JSON only:
 {"title":"...","content_html":"...","excerpt":"..."}`,
@@ -76,53 +61,71 @@ Return JSON only:
   return JSON.parse(match[0]);
 }
 
+async function runBatch<T>(items: T[], batchSize: number, fn: (item: T) => Promise<void>) {
+  for (let i = 0; i < items.length; i += batchSize) {
+    await Promise.all(items.slice(i, i + batchSize).map(fn));
+  }
+}
+
 export async function POST(req: NextRequest) {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const { type = "all" } = await req.json().catch(() => ({}));
   const supabase = await createServiceClient();
 
   const results = { updated: 0, errors: 0, errorDetails: [] as string[] };
 
   if (type === "all" || type === "social") {
-    const { data: socials } = await supabase
+    const { data: socials, error } = await supabase
       .from("social_posts")
       .select("id, platform, caption, hashtags")
       .neq("status", "published");
 
-    for (const post of socials ?? []) {
-      try {
-        const updated = await refineSocialPost(post);
-        await supabase
-          .from("social_posts")
-          .update({ caption: updated.caption, hashtags: updated.hashtags })
-          .eq("id", post.id);
-        results.updated++;
-      } catch (e: any) {
-        results.errors++;
-        results.errorDetails.push(`social:${post.id} — ${e.message}`);
-      }
+    if (error) {
+      results.errorDetails.push(`fetch social_posts: ${error.message}`);
+    } else {
+      await runBatch(socials ?? [], 3, async (post) => {
+        try {
+          const updated = await refineSocialPost(client, post);
+          const { error: updateError } = await supabase
+            .from("social_posts")
+            .update({ caption: updated.caption, hashtags: updated.hashtags })
+            .eq("id", post.id);
+          if (updateError) throw new Error(updateError.message);
+          results.updated++;
+        } catch (e: any) {
+          results.errors++;
+          results.errorDetails.push(`social:${post.id} — ${e.message}`);
+        }
+      });
     }
   }
 
   if (type === "all" || type === "blog") {
-    const { data: blogs } = await supabase
+    const { data: blogs, error } = await supabase
       .from("blog_posts")
       .select("id, title, content_html, excerpt")
       .neq("status", "published");
 
-    for (const post of blogs ?? []) {
-      try {
-        const updated = await refineBlogPost(post);
-        await supabase
-          .from("blog_posts")
-          .update({ title: updated.title, content_html: updated.content_html, excerpt: updated.excerpt })
-          .eq("id", post.id);
-        results.updated++;
-      } catch (e: any) {
-        results.errors++;
-        results.errorDetails.push(`blog:${post.id} — ${e.message}`);
-      }
+    if (error) {
+      results.errorDetails.push(`fetch blog_posts: ${error.message}`);
+    } else {
+      await runBatch(blogs ?? [], 2, async (post) => {
+        try {
+          const updated = await refineBlogPost(client, post);
+          const { error: updateError } = await supabase
+            .from("blog_posts")
+            .update({ title: updated.title, content_html: updated.content_html, excerpt: updated.excerpt })
+            .eq("id", post.id);
+          if (updateError) throw new Error(updateError.message);
+          results.updated++;
+        } catch (e: any) {
+          results.errors++;
+          results.errorDetails.push(`blog:${post.id} — ${e.message}`);
+        }
+      });
     }
   }
 
+  console.log("bulk-refine results:", results);
   return NextResponse.json(results);
 }
