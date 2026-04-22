@@ -60,6 +60,7 @@ export default function GeneratePage() {
   const [weekPlan, setWeekPlan] = useState<any>(null);
   const [weekLoading, setWeekLoading] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [weekProgress, setWeekProgress] = useState("");
 
   useEffect(() => { loadAll(); }, []);
 
@@ -254,18 +255,51 @@ export default function GeneratePage() {
   async function generateAllFromPlan() {
     if (!weekPlan) return;
     setGeneratingAll(true);
+    let blogCount = 0;
+    let socialCount = 0;
+    const { blog_topics, social_topics, week_theme } = weekPlan;
+    const total = blog_topics.length + social_topics.length;
+
     try {
-      const res = await fetch("/api/generate-week-full", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekStart, weekPlan }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success(`Generated ${data.blogs} blogs + ${data.socials} social posts — all saved`);
-      // Reload drafts to show new content
+      // Generate blogs one at a time
+      for (let i = 0; i < blog_topics.length; i++) {
+        const { topic, keywords } = blog_topics[i];
+        setWeekProgress(`Blog ${i + 1} of ${blog_topics.length}…`);
+        const genRes = await fetch("/api/generate-blog", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, keywords }),
+        });
+        const genData = await genRes.json();
+        if (!genRes.ok) throw new Error(genData.error);
+        const saveRes = await fetch("/api/save-blog", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(genData),
+        });
+        if (saveRes.ok) blogCount++;
+      }
+
+      // Generate social posts one at a time
+      for (let i = 0; i < social_topics.length; i++) {
+        const { platform, topic } = social_topics[i];
+        setWeekProgress(`Social post ${i + 1} of ${social_topics.length}…`);
+        const genRes = await fetch("/api/generate-social", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ platform, topic, weekTheme: week_theme }),
+        });
+        const genData = await genRes.json();
+        if (!genRes.ok) throw new Error(genData.error);
+        const saveRes = await fetch("/api/save-social", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...genData, platform }),
+        });
+        if (saveRes.ok) socialCount++;
+      }
+
+      toast.success(`Generated ${blogCount} blogs + ${socialCount} social posts — all saved`);
+      setWeekPlan(null);
       await loadAll();
     } catch (e: any) { toast.error(e.message || "Generation failed"); }
-    finally { setGeneratingAll(false); }
+    finally { setGeneratingAll(false); setWeekProgress(""); }
   }
 
   // ── Package selector component ──────────────────────────────────────────────
@@ -659,7 +693,7 @@ export default function GeneratePage() {
                 </button>
                 {weekPlan && (
                   <button className={`${MINT} w-full justify-center gap-2`} onClick={generateAllFromPlan} disabled={generatingAll}>
-                    {generatingAll ? <><Loader2 className="w-4 h-4 animate-spin" /> GENERATING ALL...</> : <><Sparkles className="w-4 h-4" /> GENERATE ALL CONTENT</>}
+                    {generatingAll ? <><Loader2 className="w-4 h-4 animate-spin" /> {weekProgress || "STARTING…"}</> : <><Sparkles className="w-4 h-4" /> GENERATE ALL CONTENT</>}
                   </button>
                 )}
                 {weekPlan && (
