@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { format } from "date-fns";
 import { FileText, Share2, CheckCircle2, Clock, Sparkles, ArrowRight } from "lucide-react";
-import BulkRefineButton from "@/components/BulkRefineButton";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -23,10 +22,6 @@ export default async function AdminDashboard() {
     pendingReview: packages?.filter((p: any) => p.status === "pending_review").length ?? 0,
   };
 
-  const nonPublishedCount =
-    (blogs?.filter((b: any) => b.status !== "published").length ?? 0) +
-    (socials?.filter((s: any) => s.status !== "published").length ?? 0);
-
   const pkgStatusColor: Record<string, { bg: string; text: string }> = {
     pending_review:    { bg: "#dbeafe", text: "#1d4ed8" },
     changes_requested: { bg: "#fee2e2", text: "#b91c1c" },
@@ -36,19 +31,14 @@ export default async function AdminDashboard() {
   return (
     <div className="p-8 max-w-5xl">
       {/* Header */}
-      <div className="mb-10 flex items-start justify-between gap-4">
-        <div>
-          <p className="label-kicker mb-2">Overview</p>
-          <h1 className="font-display" style={{ fontSize: 38, lineHeight: 1, letterSpacing: "-0.5px", color: "#111", fontWeight: 700 }}>
-            Dashboard
-          </h1>
-          <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
-            {format(new Date(), "EEEE, MMMM d, yyyy")}
-          </p>
-        </div>
-        <div className="pt-2">
-          <BulkRefineButton postCount={nonPublishedCount} />
-        </div>
+      <div className="mb-10">
+        <p className="label-kicker mb-2">Overview</p>
+        <h1 className="font-display" style={{ fontSize: 38, lineHeight: 1, letterSpacing: "-0.5px", color: "#111", fontWeight: 700 }}>
+          Dashboard
+        </h1>
+        <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
+          {format(new Date(), "EEEE, MMMM d, yyyy")}
+        </p>
       </div>
 
       {/* Stats */}
